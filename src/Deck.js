@@ -3,7 +3,9 @@ import {
 	View,
 	Animated,
 	PanResponder,
-	Dimensions
+	Dimensions,
+	LayoutAnimation,
+	UIManager
 } from 'react-native';
 
 
@@ -57,6 +59,18 @@ class Deck extends Component{
 		this.state = { panResponder , position, index: 0 }
 	}
 
+	componentWillReceiveProps(nextProps){
+
+		//새로 렌더링할 데이터가 기존에 있던 데이터와 다를 경우
+		if(nextProps.data != this.props.data){
+			this.setState({index:0});
+		}
+
+	}
+	componentWillUpdate(){
+		UIManager.setLayoutAnimationEnabledExperimental && UIManager.setLayoutAnimationEnabledExperimental(true)
+		LayoutAnimation.spring();
+	}
 	forceSwipe(direction){
 
 		const x = direction === 'right' ? SCREEN_WIDTH : -SCREEN_WIDTH;
@@ -110,26 +124,38 @@ class Deck extends Component{
 	}
 
 	/* 카드들을 만들어줍니다. */
-	renderCards(){
-		//data로 받은 내용을 item loop을 통해 return 해줌
-		return this.props.data.map((item, index) =>{
+	renderCards() {
+		if (this.state.index >= this.props.data.length) {
+			return this.props.renderNoMoreCards();
+		}
 
-			if(index === 0){
-				return(
+		return this.props.data.map((item, i) => {
+			if (i < this.state.index) { return null; }
+
+			if (i === this.state.index) {
+				return (
 					<Animated.View
 						key={item.id}
-						style={this.getCardStyle()}
+						style={[this.getCardStyle(), styles.cardStyle]}
 						{...this.state.panResponder.panHandlers}
 					>
 						{this.props.renderCard(item)}
 					</Animated.View>
-				)
+				);
 			}
 
-
-			return this.props.renderCard(item);
-		})
+			return (
+				<Animated.View
+					key={item.id}
+					style={[styles.cardStyle, { top:10 * (i - this.state.index) }]}
+				>
+					{this.props.renderCard(item)}
+				</Animated.View>
+			);
+		}).reverse();
 	}
+
+
 	render(){
 
 		return(
@@ -151,6 +177,14 @@ class Deck extends Component{
 //	}
 //};
 
+const styles={
+	cardStyle:{
+		position:'absolute',
+		width: SCREEN_WIDTH,
+		left:0,
+		right:0
+	}
+};
 
 export default Deck;
 
